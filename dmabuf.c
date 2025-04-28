@@ -12,7 +12,11 @@
 #include <stdbool.h>
 #include <sys/ioctl.h>
 #include <linux/dma-buf.h>
-#include <linux/dma-heap.h>
+//#include <linux/dma-heap.h>
+#include "dma-heap.h"
+
+#define DMA_BUF_SET_NAME _IOW(DMA_BUF_BASE,1,const char*)
+
 
 /*
  * Depending on the configuration method, the name of the device node name

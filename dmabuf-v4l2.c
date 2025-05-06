@@ -22,6 +22,8 @@
 #include <linux/videodev2.h>
 
 #include "dmabuf.h"
+#include "drm_display.h" 
+
 
 struct arguments_t
 {
@@ -234,8 +236,10 @@ int main(int argc, char *argv[])
 
   /* open v4l2 device */
   v4l2_fd = open_video_device(args.vdev_name, args.width, args.height, args.fourcc, &pix_fmt, &mplane_api);
-  if(v4l2_fd < 0)
+  if(v4l2_fd < 0){
+    fprintf(stderr, "打开视频设备失败\n");
     return -1;
+  }
 
   printf("Actual v4l2 device:  %s\n", args.vdev_name);
   printf("Actual timeout:      %ums\n", args.timeout_ms);
@@ -243,6 +247,16 @@ int main(int argc, char *argv[])
   printf("Actual image height: %u\n", pix_fmt.height);
   printf("Actual image format: %.4s\n", (char*) &pix_fmt.pixelformat);
   printf("Actual image size:   %u\n", pix_fmt.sizeimage);
+
+
+  // 初始化 DRM 显示
+  struct drm_context *drm_ctx = NULL;
+  if (drm_display_init(&drm_ctx, pix_fmt.width, pix_fmt.height, pix_fmt.pixelformat, false) != 0) {
+      fprintf(stderr, "drm_display_init 失败\n");
+      goto exit_cleanup;
+  }
+
+
 
   /* request buffers from v4l2 device */
   memset(&rqbufs, 0, sizeof(rqbufs));
@@ -357,6 +371,12 @@ int main(int argc, char *argv[])
 
     buf_index = buf.index;
 
+    //【新增】调用 drm_display_frame() 显示当前 dma-buf
+    if (drm_display_frame(drm_ctx, dmabuf_fds[buf_index]) != 0) {
+        fprintf(stderr, "drm_display_frame 失败\n");
+    }
+
+#if 0
     /* prepare buffer for CPU access */
     dmabuf_sync_start(dmabuf_fds[buf_index]);
     {
@@ -384,7 +404,7 @@ int main(int argc, char *argv[])
     }
     /* release buffer for CPU access */
     dmabuf_sync_stop(dmabuf_fds[buf_index]);
-
+#endif
     /* enqueue a buffer */
     memset(&buf, 0, sizeof(buf));
     buf.index = buf_index;
@@ -416,6 +436,10 @@ int main(int argc, char *argv[])
   /* 
    * FIXME: add cleanup 
    */
+  //程序退出时释放 drm_ctx
+    if (drm_ctx) {
+        drm_display_cleanup(drm_ctx);
+    }
 
   return 0;
 }

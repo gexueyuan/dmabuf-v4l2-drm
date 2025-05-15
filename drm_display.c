@@ -215,6 +215,9 @@ int drm_display_frame(struct drm_context *ctx, int dma_buf_fd)
         case DRM_FORMAT_XBGR8888:
             pitches[0] = ctx->width * 4;  // 4 字节/像素
             break;
+        case DRM_FORMAT_RGB888:          
+            pitches[0] = ctx->width * 3;  // 每像素3字节（无alpha）
+            break;    
         case DRM_FORMAT_RGB565:
             pitches[0] = ctx->width * 2;  // 2 字节/像素
             break;
